@@ -86,8 +86,8 @@ function format_block_line(
     Base.text_colors[prefix_color] * "$prefix" * Base.text_colors[content_color] * content
 end
 
-struct Block{T} <: IORule
-    header::T
+struct Block <: IORule
+    header
     color::Symbol
 end
 
