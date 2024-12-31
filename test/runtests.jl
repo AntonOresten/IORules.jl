@@ -6,26 +6,49 @@ using Test
     @testset "interface" begin
 
         struct Uppercase <: IORule end
+
+        IORules.apply_rule(data, ::Uppercase) = uppercase(data)
+
         struct Pad <: IORule
             padding::String
         end
         
-        IORules.apply_rule(data, ::Uppercase) = uppercase(data)
         IORules.apply_rule(data, rule::Pad) = rule.padding * data
+
+        struct EndPad <: IORule
+            padding::String
+        end
+
+        function IORules.close_rule(io::IOWithRule{EndPad})
+            write(io.io, io.rule.padding)
+            close_rule(io.io)
+        end
 
         @testset "apply_rule" begin
             @test apply_rule("hello", Uppercase()) == "HELLO"
+            @test Uppercase()("hello") == "HELLO"
         end
 
         @testset "with_rule" begin
             io = IOBuffer()
             @test with_rule(io, Uppercase()) isa IOWithRule
+            @test Uppercase()(io) isa IOWithRule
         end
 
         @testset "write_rule" begin
             io = IOBuffer()
             write_rule(with_rule(io, Uppercase()), "hello")
             @test String(take!(io)) == "HELLO"
+            write(Uppercase()(io), "hello")
+            @test String(take!(io)) == "HELLO"
+        end
+
+        @testset "close_rule" begin
+            io = IOBuffer()
+            io_with_rule = with_rule(io, EndPad("p"))
+            write(io_with_rule, "hello")
+            close_rule(io_with_rule)
+            @test String(take!(io)) == "hellop"
         end
 
         @testset "rule(io) syntax" begin
@@ -50,10 +73,10 @@ using Test
     @testset "rules" begin
 
         @testset "Formatter" begin
-            @test apply_rule("hello", Formatter(s -> uppercase(s))) == "HELLO"
+            @test Formatter(s -> uppercase(s))("hello") == "HELLO"
 
             @testset "Color" begin
-                @test apply_rule("hello", Color(:red)) == Base.text_colors[:red] * "hello"
+                @test Color(:red)("hello") == Base.text_colors[:red] * "hello"
             end
         end
 

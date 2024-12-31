@@ -24,6 +24,8 @@ with_rule(io::IO, rule::IORule) = IOWithRule(io, rule)
 write_rule(io::IOWithRule, data) = write(io.io, apply_rule(data, io.rule))
 
 Base.write(io::IOWithRule, data) = write_rule(io, data)
+
+# to fix method ambiguity
 Base.write(io::IOWithRule, data::Vector{UInt8}) = write_rule(io, data)
 Base.write(io::IOWithRule, data::Union{SubString{String}, String}) = write_rule(io, data)
 
